@@ -1,6 +1,6 @@
-﻿using Library.Domain;
+﻿using Domain;
 
-namespace Library.Application
+namespace Application.Disk
 {
     public class DiskService
     {
