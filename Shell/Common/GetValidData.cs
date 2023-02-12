@@ -36,5 +36,14 @@ namespace Shell.Common
 
             return number;
         }
+        internal static void LogMinimoOMaximoInvalido(int? minimun, int? maximun)
+        {
+            Console.WriteLine($"El número debe ser{(minimun != null ? $" mayor a o igual a {minimun}" : "")}{(maximun != null ? $"{(minimun != null ? " y " : " ")}menor o igual a {maximun}" : "")}.");
+        }
+
+        internal static bool EsValidoRango(int? minimun, int? maximun, int? number)
+        {
+            return !((maximun != null && number > maximun) || (minimun != null && number < minimun));
+        }
     }
 }
