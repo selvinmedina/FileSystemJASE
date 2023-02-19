@@ -1,11 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Shell.Common
+﻿namespace Shell.Common
 {
     internal class GetValidData
     {
@@ -25,7 +18,7 @@ namespace Shell.Common
             }
         }
 
-        internal static T GetValidNumber<T>(string? userInput) where T : struct 
+        internal static T GetValidNumber<T>(string? userInput) where T : struct
         {
             T number;
 

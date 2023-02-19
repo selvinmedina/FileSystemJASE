@@ -1,19 +1,44 @@
-﻿using Shell.Common;
-using System.Text;
-using static Shell.Common.GetValidData;
-using static Shell.Common.ConsoleExtensions;
+﻿using Application.System;
 using Domain.Entities.Disk;
 using Domain.Entities.System;
-using Application.System;
+using static Shell.Common.ConsoleExtensions;
+using static Shell.Common.GetValidData;
 
 Console.Title = "JASE";
 
 string dbName = "";
-Console.WriteLine("Sistema de archivos genérico creado por Javier y Selvin");
+Console.WriteLine("Sistemas de archivos genéricos creado por Javier y Selvin");
 
-bool thereareSystemSettings = false; // TODO: Asignar true cuando se detecte algo en bases de datos.
+List<string> databases = new List<string>();
+foreach (var item in Directory.GetFiles(Directory.GetCurrentDirectory()))
+{
+    if (item.EndsWith(".db"))
+    {
+        databases.Add(item.Split("\\")[^1]);
+    }
+}
 
-if (!thereareSystemSettings)
+if (databases.Count > 0)
+{
+    Console.WriteLine("Seleccione un sistema de archivos configurado:");
+    Console.WriteLine($"0. Nuevo");
+    for (int i = 0; i < databases.Count; i++)
+    {
+        Console.WriteLine($"{i + 1}. {databases[i]}");
+    }
+
+    int option = GetOption(databases);
+
+    if (option > 0)
+    {
+        dbName = databases[option - 1];
+    }
+}
+
+
+bool configureNewFileSystem = string.IsNullOrEmpty(dbName);
+
+if (configureNewFileSystem)
 {
     int systemSizeKb = GetSystemSize(),
         blockSize = GetBlockSize();
@@ -24,7 +49,6 @@ if (!thereareSystemSettings)
 
     Inode root = new Inode("C:/");
     InodeTable inodeTable = new InodeTable();
-    inodeTable.AddInode(root.UniqueId, available: true);
 
     SystemSuperBlock superBlock = new SystemSuperBlock();
 
@@ -35,16 +59,25 @@ if (!thereareSystemSettings)
         systemName!
         );
 
-    dbName = systemName!.Replace(" ", "");
+    dbName = $"{systemName!.Replace(" ", "")}.db";
     FileSystemService fileSystemService = await GetFileSystemService(dbName);
 
     await fileSystemService.SaveConfig(superBlock, inodeTable, root);
 
-    var sb = fileSystemService.GetSuperBlock();
+    var test1 = await fileSystemService.GetSuperBlock();
+    var test2 = fileSystemService.GetInodeTable();
+    var test3 = fileSystemService.GetInodes();
+}
+else
+{
+    FileSystemService fileSystemService = await GetFileSystemService(dbName);
 
-
+    var test1 = await fileSystemService.GetSuperBlock();
+    var test2 = fileSystemService.GetInodeTable();
+    var test3 = fileSystemService.GetInodes();
 }
 
+#region Get Values
 static int GetSystemSize()
 {
     int minimun = 1000;
@@ -132,3 +165,19 @@ static async Task<FileSystemService> GetFileSystemService(string dbName)
     await fileSystemService.ConfigureDataBase(dbName);
     return fileSystemService;
 }
+
+static int GetOption(List<string> databases)
+{
+    bool isValid = true;
+    int option;
+    do
+    {
+        option = GetValidNumber<int>(Console.ReadLine());
+
+        if (!isValid) LogMinimoOMaximoInvalido(0, maximun: databases.Count);
+        isValid = EsValidoRango(0, maximun: databases.Count, option);
+    } while (!isValid);
+
+    return option;
+}
+#endregion

@@ -1,12 +1,7 @@
 ﻿using Infrastructure.Maps;
 using Microsoft.EntityFrameworkCore;
 using SelvinMedina.EntityFramework.Infrastructure.Core.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure
 {
@@ -20,7 +15,7 @@ namespace Infrastructure
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite(connectionString: $"FileName = {_databseName}.db", sqliteOptionsAction: op =>
+            optionsBuilder.UseSqlite(connectionString: $"FileName = {_databseName}", sqliteOptionsAction: op =>
             {
                 op.MigrationsAssembly(Assembly.GetExecutingAssembly().FullName);
             });
@@ -31,6 +26,9 @@ namespace Infrastructure
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.AddConfiguration(new SystemSuperBlockMap());
+            modelBuilder.AddConfiguration(new InodeTableMap());
+            modelBuilder.AddConfiguration(new InodeMap());
+
             base.OnModelCreating(modelBuilder);
         }
     }

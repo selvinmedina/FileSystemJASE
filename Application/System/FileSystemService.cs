@@ -1,16 +1,13 @@
 ﻿using Domain.Entities.Disk;
 using Domain.Entities.System;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
-using System.Text.Json.Serialization;
-using System.Text.Json;
-using SelvinMedina.EntityFramework.Infrastructure.Core.UnitOfWork;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using SelvinMedina.EntityFramework.Infrastructure.Core.UnitOfWork;
 
 namespace Application.System
 {
-    public class FileSystemService
+    public partial class FileSystemService
     {
         private IUnitOfWork uofW = null!;
         public FileSystemService()
@@ -27,23 +24,18 @@ namespace Application.System
 
         public async Task SaveConfig(SystemSuperBlock superBlock, InodeTable inodeTable, Inode inode)
         {
-            var jsonWriteOptions = new JsonSerializerOptions()
+            try
             {
-                WriteIndented = true
-            };
-            jsonWriteOptions.Converters.Add(new JsonStringEnumConverter());
+                uofW.Repository<SystemSuperBlock>().Add(superBlock);
+                uofW.Repository<Inode>().Add(inode);
+                await AddToInodeTable(inode.UniqueId, available: true, save: false);
 
-            var newSuperBlock = JsonSerializer.Serialize(superBlock, jsonWriteOptions);
-            var newInodeTable = JsonSerializer.Serialize(inodeTable, jsonWriteOptions);
-            List<Inode> inodes = new List<Inode>();
-            inodes.Add(inode);
-            var newInodes = JsonSerializer.Serialize(inodes, jsonWriteOptions);
-
-            uofW.Repository<SystemSuperBlock>().Add(superBlock);
-            Save(newInodes, "inodes.json");
-            Save(newInodeTable, "inodeTable.json");
-
-            await uofW.SaveAsync();
+                await uofW.SaveAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Hubo un error al guardar la configuracion: {ex.Message}, {ex.StackTrace}");
+            }
         }
 
         private static void Save(string text, string fileName)
@@ -52,32 +44,70 @@ namespace Application.System
             File.WriteAllText(appSettingsPath, text);
         }
 
-        public SystemSuperBlock GetSuperBlock() {
-            var superblockConfig = uofW.Repository<SystemSuperBlock>().AsQueryable().FirstOrDefault();
+        public async Task<SystemSuperBlock> GetSuperBlock()
+        {
+            var superblockConfig = await uofW.Repository<SystemSuperBlock>()
+                .AsQueryable()
+                .FirstOrDefaultAsync();
 
             return superblockConfig!;
         }
 
-        public InodeTable GetInodeTable()
+        public async Task<List<InodeTable>> GetInodeTable()
         {
-            var inodeTable = new ConfigurationBuilder()
-                   .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                   .AddJsonFile("inodeTable.json")
-                   .Build()
-                   .Get<InodeTable>();
+            var inodeTable = await uofW.Repository<InodeTable>()
+                .AsQueryable()
+                .ToListAsync();
 
             return inodeTable!;
         }
 
-        public List<Inode> GetInodes()
+        public async Task<List<Inode>> GetInodes()
         {
-            var inodes = new ConfigurationBuilder()
-                   .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                   .AddJsonFile("inodes.json")
-                   .Build()
-                   .Get<List<Inode>>();
+            var inodes = await uofW.Repository<Inode>()
+                .AsQueryable()
+                .ToListAsync();
 
             return inodes!;
+        }
+
+        public async Task AddToInodeTable(Guid inodeUniqueId, bool available, bool save = true)
+        {
+            uofW.Repository<InodeTable>().Add(new InodeTable { Status = available, UniqueNodeId = inodeUniqueId });
+
+            if (save) await uofW.SaveAsync();
+        }
+
+        public async Task<bool> GetInodeStatus(Guid inodeUniqueId)
+        {
+            InodeTable? inodeTableFound = await GetInodeTable(inodeUniqueId);
+
+            if (inodeTableFound is null)
+            {
+                throw new Exception("Not found inodeTable");
+            }
+
+            var response = inodeTableFound.Status;
+
+            return response;
+        }
+
+        private async Task<InodeTable?> GetInodeTable(Guid inodeUniqueId)
+        {
+            return await uofW.Repository<InodeTable>().AsQueryable().FirstOrDefaultAsync(x => x.UniqueNodeId == inodeUniqueId);
+        }
+
+        public async Task SetInodeStatus(Guid inodeUniqueId, bool status, bool save = true)
+        {
+            var inodeTableFound = await GetInodeTable(inodeUniqueId);
+            if (inodeTableFound is null)
+            {
+                throw new Exception("Not found inodeTable");
+            }
+
+            inodeTableFound.Status = status;
+
+            if (save) await uofW.SaveAsync();
         }
     }
 }

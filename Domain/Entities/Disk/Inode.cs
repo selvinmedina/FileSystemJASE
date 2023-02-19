@@ -4,6 +4,7 @@ namespace Domain.Entities.Disk
 {
     public class Inode
     {
+        public int Id { get; set; }
         public Guid UniqueId { get; set; }
         public string Name { get; set; } = null!;
         public int ParentDirectoryId { get; set; }
