@@ -2,79 +2,138 @@
 using System.Text;
 using static Shell.Common.GetValidData;
 using static Shell.Common.ConsoleExtensions;
+using Domain.Entities.Disk;
+using Domain.Entities.System;
+using Application.System;
 
 Console.Title = "JASE";
 
+string dbName = "";
 Console.WriteLine("Sistema de archivos genérico creado por Javier y Selvin");
 
 bool thereareSystemSettings = false; // TODO: Asignar true cuando se detecte algo en bases de datos.
 
 if (!thereareSystemSettings)
 {
-    int? minimun = 10000, maximun = null, number;
+    int systemSizeKb = GetSystemSize(),
+        blockSize = GetBlockSize(),
+        blockQuantity = systemSizeKb / blockSize;
+
+    string systemName = GetSystemName(),
+        adminUser = GetAdminUser(),
+        adminPassword = GetAdminPassword();
+
+    //Console.WriteLine($"Cantidad de bloques: {blockQuantity}");
+
+    //Console.WriteLine($"Usuario: {adminUser}");
+    //Console.WriteLine($"Password: {adminPassword}");
+    //Console.WriteLine($"SystemName: {systemName}");
+
+    //TODO: Continuar con InodeTable, validar como hacerlo desde la capa de aplicacion
+    Inode root = new Inode("C:/");
+    InodeTable inodeTable = new InodeTable();
+    inodeTable.AddInode(root.UniqueId, available: true);
+
+    SystemSuperBlock superBlock = new SystemSuperBlock();
+
+    superBlock.Create(systemSizeKb,
+        blockSize,
+        adminUser!,
+        adminPassword!,
+        systemName!
+        );
+
+    //dbName = systemName!.Replace(" ", "");
+    //FileSystemService fileSystemService = new FileSystemService();
+    //await fileSystemService.ConfigureDataBase(dbName);
+
+
+    //await fileSystemService.SaveConfig(superBlock, inodeTable, root);
+
+    //var sb= fileSystemService.GetSuperBlock();
+    //var ino = fileSystemService.GetInodeTable();
+    //var inodes = fileSystemService.GetInodes();
+
+
+}
+
+static int GetSystemSize()
+{
+    int minimun = 1000;
+
+    int number;
     bool isValid = true;
     do
     {
-        if (!isValid) LogMinimoOMaximoInvalido(minimun, maximun);
-        
+        if (!isValid) LogMinimoOMaximoInvalido(minimun, maximun: null);
+
         Console.WriteLine("¿De qué tamaño desea su sistema de archivos? (en KB)");
 
         number = GetValidNumber<int>(Console.ReadLine());
-        isValid = EsValidoRango(minimun, maximun, number);
+        isValid = EsValidoRango(minimun, maximun: null, number);
     } while (!isValid);
+    return number!;
+}
 
-    int systemSizeKb = number ?? 0;
-
-    minimun = 200;
+static int GetBlockSize()
+{
+    int minimun = 200;
+    bool isValid = true;
+    int number;
     do
     {
-        if (!isValid) LogMinimoOMaximoInvalido(minimun, maximun);
+        if (!isValid) LogMinimoOMaximoInvalido(minimun, maximun: null);
         Console.WriteLine("¿Cuál es el tamaño de cada bloque de información? (en KB)");
 
         number = GetValidNumber<int>(Console.ReadLine());
-        isValid = EsValidoRango(minimun, maximun, number);
+        isValid = EsValidoRango(minimun, maximun: null, number);
     } while (!isValid);
+    return number;
+}
 
-    int blockSize = number ?? 0;
-
-    int blockQuantity = systemSizeKb / blockSize;
-
-    string? adminUser = "", adminPassword = "", systemName;
-
-    isValid = true;
-
+static string GetSystemName()
+{
+    string response = "";
+    bool isValid = true;
     do
     {
         Console.WriteLine("Ingrese el nombre del Sistema de Archivos");
-        systemName = Console.ReadLine();
-        isValid = !string.IsNullOrEmpty(systemName) || systemName?.Length < 3;
+        response = Console.ReadLine();
+        isValid = !string.IsNullOrEmpty(response) || response?.Length < 3;
 
         if (!isValid) Console.WriteLine("El nombre del sistema de archivos debe ser mayor a 3 dígitos.");
     } while (!isValid);
+    return response!;
+}
 
-    isValid = true;
-
+static string GetAdminUser()
+{
+    string? response = "";
+    bool isValid = true;
     do
     {
         Console.WriteLine("Ingrese el nombre del usuario administrador del Sistema de Archivos");
-        adminUser = Console.ReadLine();
-        isValid = !string.IsNullOrEmpty(adminUser) || adminUser?.Length < 4;
+        response = Console.ReadLine();
+        isValid = !string.IsNullOrEmpty(response) || response?.Length < 4;
 
         if (!isValid) Console.WriteLine("El usuario debe ser mayor a 4 dígitos.");
     } while (!isValid);
 
-    isValid = true;
+    return response!;
+}
 
+static string GetAdminPassword()
+{
+    bool isValid = true;
+    string? response = "";
     do
     {
         Console.WriteLine("Ingrese la contraseña del usuario administrador del Sistema de Archivos");
-        adminPassword = GetPassword();
-        isValid = !string.IsNullOrEmpty(adminPassword) || adminPassword?.Length < 6;
+        response = GetPassword();
+        isValid = !string.IsNullOrEmpty(response) || response?.Length < 6;
 
         if (!isValid) Console.WriteLine("La contraseña debe ser mayor a 6 dígitos.");
     } while (!isValid);
 
-    Console.WriteLine($"Cantidad de bloques: {blockQuantity}");
-
-    //TODO: Continuar con InodeTable, validar como hacerlo desde la capa de aplicacion
+    return response!;
 }
