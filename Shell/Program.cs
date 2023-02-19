@@ -73,8 +73,8 @@ else
     FileSystemService fileSystemService = await GetFileSystemService(dbName);
 
     var test1 = await fileSystemService.GetSuperBlock();
-    var test2 = fileSystemService.GetInodeTable();
-    var test3 = fileSystemService.GetInodes();
+    var test2 = await fileSystemService.GetInodeTable();
+    var test3 = await fileSystemService.GetInodes();
 }
 
 #region Get Values
