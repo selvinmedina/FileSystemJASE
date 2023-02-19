@@ -109,5 +109,12 @@ namespace Application.System
 
             if (save) await uofW.SaveAsync();
         }
+
+        public static async Task<FileSystemService> GetFileSystemService(string dbName)
+        {
+            FileSystemService fileSystemService = new FileSystemService();
+            await fileSystemService.ConfigureDataBase(dbName);
+            return fileSystemService;
+        }
     }
 }

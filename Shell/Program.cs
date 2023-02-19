@@ -1,6 +1,7 @@
 ﻿using Application.System;
 using Domain.Entities.Disk;
 using Domain.Entities.System;
+using Shell;
 using static Shell.Common.ConsoleExtensions;
 using static Shell.Common.GetValidData;
 
@@ -27,7 +28,7 @@ if (databases.Count > 0)
         Console.WriteLine($"{i + 1}. {databases[i]}");
     }
 
-    int option = GetOption(databases);
+    int option = GetDatabaseOption(databases);
 
     if (option > 0)
     {
@@ -40,133 +41,108 @@ bool configureNewFileSystem = string.IsNullOrEmpty(dbName);
 
 if (configureNewFileSystem)
 {
-    int systemSizeKb = GetSystemSize(),
-        blockSize = GetBlockSize();
-
-    string systemName = GetSystemName(),
-        adminUser = GetAdminUser(),
-        adminPassword = GetAdminPassword();
-
-    Inode root = new Inode("C:/");
-    InodeTable inodeTable = new InodeTable();
-
-    SystemSuperBlock superBlock = new SystemSuperBlock();
-
-    superBlock.Create(systemSizeKb,
-        blockSize,
-        adminUser!,
-        adminPassword!,
-        systemName!
-        );
-
-    dbName = $"{systemName!.Replace(" ", "")}.db";
-    FileSystemService fileSystemService = await GetFileSystemService(dbName);
-
-    await fileSystemService.SaveConfig(superBlock, inodeTable, root);
-
-    var test1 = await fileSystemService.GetSuperBlock();
-    var test2 = fileSystemService.GetInodeTable();
-    var test3 = fileSystemService.GetInodes();
+    dbName = await FileSystemNewConfig.New();
 }
-else
-{
-    FileSystemService fileSystemService = await GetFileSystemService(dbName);
 
-    var test1 = await fileSystemService.GetSuperBlock();
-    var test2 = await fileSystemService.GetInodeTable();
-    var test3 = await fileSystemService.GetInodes();
+FileSystemService fileSystemService = await FileSystemService.GetFileSystemService(dbName);
+
+var superBlock = await fileSystemService.GetSuperBlock();
+
+Console.WriteLine($"Bienvenido a {superBlock.FileSystemName}");
+Console.WriteLine("-------------------------------------------------");
+Console.WriteLine("Opciones disponibles: ");
+Console.WriteLine("stat: Consulta  estadísticas sobre el estado del sistema de archivos.");
+Console.WriteLine("pwd: Indicar en que directorio se encuentra actualmente.");
+Console.WriteLine("cd: Moverse a través de los directorios");
+Console.WriteLine("touch: Crear archivos en el directorio actual.");
+Console.WriteLine("mkdir: Crear directorios en el directorio actual.");
+Console.WriteLine("mv: Mover archivos a un directorio ya existente.");
+Console.WriteLine("cp: Copiar archivos a un directorio ya existente.");
+Console.WriteLine("df -H: Ver espacio disponible en disco (basado en la cantidad de bloques libres).");
+Console.WriteLine("rm: Borrar un archivo.");
+Console.WriteLine("rm -d: Borrar un directorio (considerar que hacer en el caso de contener mas archivos o  subdirectorios).");
+Console.WriteLine("ls: Listar archivos y directorios dentro de un directorio.");
+Console.WriteLine("ls -al: Listar información detallada de un archivo / directorio (nombre, numero de inodo,  nombre de carpeta padre, fecha de creación, tipo (archivo o directorio).");
+Console.WriteLine("mkfs: Formatear el disco.");
+Console.WriteLine("exit: Salir.");
+Console.WriteLine("-------------------------------------------------");
+
+while (true)
+{
+    string opcion = Console.ReadLine()!;
+    var split = opcion.Split(" ");
+    opcion = split[0];
+    string argumentos = "";
+
+    if (split.Length > 1)
+    {
+        for (int i = 1; i < split.Length; i++)
+        {
+            argumentos += split[i];
+        }
+    }
+
+    switch (opcion)
+    {
+        case "stat":
+            Console.WriteLine($"Fecha de creación: {superBlock.CreationDate}");
+            Console.WriteLine($"Nombre del sistema de archivo: {superBlock.FileSystemName}");
+            Console.WriteLine($"Cantidad de directorios existenets: {superBlock.NumberOfExistingDirectories}");
+            Console.WriteLine($"Cantidad de archivos existenets: {superBlock.NumberOfExistingFiles}");
+            Console.WriteLine($"Usuario admin: {superBlock.UserName}");
+            Console.WriteLine($"Contraseña admin: {superBlock.Password}");
+            Console.WriteLine($"Espacio utilizado: {superBlock.UsedSpace}");
+            Console.WriteLine($"Espacio disponible: {superBlock.AvailableSpace}");
+            Console.WriteLine($"Cantidad de bloques utilizados: {superBlock.NumberOfBlocksUsed}");
+            Console.WriteLine($"Cantidad de bloques disponibles: {superBlock.NumberOfBlocksAvailable}");
+            break;
+        case "pwd":
+            Console.WriteLine($"Directorio actual: /");
+            break;
+        case "cd":
+            Console.WriteLine($"Moviendose a {argumentos}");
+            break;
+        case "touch":
+            Console.WriteLine($"Creando archivos {argumentos} en el directorio actual.");
+            break;
+        case "mkdir":
+            Console.WriteLine($"Creando directorio {argumentos} en el directorio actual.");
+            break;
+        case "mv":
+            Console.WriteLine($"Moviendo {argumentos} a un directorio ya existente.");
+            break;
+        case "cp":
+            Console.WriteLine($"Copiando {argumentos} a un directorio ya existente.");
+            break;
+        case "df -H":
+            Console.WriteLine($"Espacio disponible: {superBlock.AvailableSpace}");
+            break;
+        case "rm":
+            Console.WriteLine($"Borrando archivo {argumentos}...");
+            break;
+        case "rm -d":
+            Console.WriteLine($"Borrando directorio: {argumentos}");
+            break;
+        case "ls":
+            Console.WriteLine($"Listando archivos del directorio actual...");
+            break;
+        case "ls -al":
+            Console.WriteLine($"Listando información detallada de un archivo / directorio (nombre, numero de inodo,  nombre de carpeta padre, fecha de creación, tipo (archivo o directorio) del directorio actual...");
+            break;
+        case "mkfs":
+            Console.WriteLine($"Formateando disco {superBlock.FileSystemName}...");
+            break;
+        case "exit":
+            Console.WriteLine("Saliendo...");
+            return;
+        default:
+            Console.WriteLine("Comando no reconocido");
+            break;
+    }
 }
 
 #region Get Values
-static int GetSystemSize()
-{
-    int minimun = 1000;
-
-    int number;
-    bool isValid = true;
-    do
-    {
-        if (!isValid) LogMinimoOMaximoInvalido(minimun, maximun: null);
-
-        Console.WriteLine("¿De qué tamaño desea su sistema de archivos? (en KB)");
-
-        number = GetValidNumber<int>(Console.ReadLine());
-        isValid = EsValidoRango(minimun, maximun: null, number);
-    } while (!isValid);
-    return number!;
-}
-
-static int GetBlockSize()
-{
-    int minimun = 200;
-    bool isValid = true;
-    int number;
-    do
-    {
-        if (!isValid) LogMinimoOMaximoInvalido(minimun, maximun: null);
-        Console.WriteLine("¿Cuál es el tamaño de cada bloque de información? (en KB)");
-
-        number = GetValidNumber<int>(Console.ReadLine());
-        isValid = EsValidoRango(minimun, maximun: null, number);
-    } while (!isValid);
-    return number;
-}
-
-static string GetSystemName()
-{
-    string response = "";
-    bool isValid = true;
-    do
-    {
-        Console.WriteLine("Ingrese el nombre del Sistema de Archivos");
-        response = Console.ReadLine();
-        isValid = !string.IsNullOrEmpty(response) || response?.Length < 3;
-
-        if (!isValid) Console.WriteLine("El nombre del sistema de archivos debe ser mayor a 3 dígitos.");
-    } while (!isValid);
-    return response!;
-}
-
-static string GetAdminUser()
-{
-    string? response = "";
-    bool isValid = true;
-    do
-    {
-        Console.WriteLine("Ingrese el nombre del usuario administrador del Sistema de Archivos");
-        response = Console.ReadLine();
-        isValid = !string.IsNullOrEmpty(response) || response?.Length < 4;
-
-        if (!isValid) Console.WriteLine("El usuario debe ser mayor a 4 dígitos.");
-    } while (!isValid);
-
-    return response!;
-}
-
-static string GetAdminPassword()
-{
-    bool isValid = true;
-    string? response = "";
-    do
-    {
-        Console.WriteLine("Ingrese la contraseña del usuario administrador del Sistema de Archivos");
-        response = GetPassword();
-        isValid = !string.IsNullOrEmpty(response) || response?.Length < 6;
-
-        if (!isValid) Console.WriteLine("La contraseña debe ser mayor a 6 dígitos.");
-    } while (!isValid);
-
-    return response!;
-}
-
-static async Task<FileSystemService> GetFileSystemService(string dbName)
-{
-    FileSystemService fileSystemService = new FileSystemService();
-    await fileSystemService.ConfigureDataBase(dbName);
-    return fileSystemService;
-}
-
-static int GetOption(List<string> databases)
+static int GetDatabaseOption(List<string> databases)
 {
     bool isValid = true;
     int option;
