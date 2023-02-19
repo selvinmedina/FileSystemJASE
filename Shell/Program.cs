@@ -43,14 +43,14 @@ if (!thereareSystemSettings)
         systemName!
         );
 
-    //dbName = systemName!.Replace(" ", "");
-    //FileSystemService fileSystemService = new FileSystemService();
-    //await fileSystemService.ConfigureDataBase(dbName);
+    dbName = systemName!.Replace(" ", "");
+    FileSystemService fileSystemService = new FileSystemService();
+    await fileSystemService.ConfigureDataBase(dbName);
 
 
-    //await fileSystemService.SaveConfig(superBlock, inodeTable, root);
+    await fileSystemService.SaveConfig(superBlock, inodeTable, root);
 
-    //var sb= fileSystemService.GetSuperBlock();
+    var sb= fileSystemService.GetSuperBlock();
     //var ino = fileSystemService.GetInodeTable();
     //var inodes = fileSystemService.GetInodes();
 
