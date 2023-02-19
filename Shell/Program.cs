@@ -16,20 +16,12 @@ bool thereareSystemSettings = false; // TODO: Asignar true cuando se detecte alg
 if (!thereareSystemSettings)
 {
     int systemSizeKb = GetSystemSize(),
-        blockSize = GetBlockSize(),
-        blockQuantity = systemSizeKb / blockSize;
+        blockSize = GetBlockSize();
 
     string systemName = GetSystemName(),
         adminUser = GetAdminUser(),
         adminPassword = GetAdminPassword();
 
-    //Console.WriteLine($"Cantidad de bloques: {blockQuantity}");
-
-    //Console.WriteLine($"Usuario: {adminUser}");
-    //Console.WriteLine($"Password: {adminPassword}");
-    //Console.WriteLine($"SystemName: {systemName}");
-
-    //TODO: Continuar con InodeTable, validar como hacerlo desde la capa de aplicacion
     Inode root = new Inode("C:/");
     InodeTable inodeTable = new InodeTable();
     inodeTable.AddInode(root.UniqueId, available: true);
@@ -44,15 +36,11 @@ if (!thereareSystemSettings)
         );
 
     dbName = systemName!.Replace(" ", "");
-    FileSystemService fileSystemService = new FileSystemService();
-    await fileSystemService.ConfigureDataBase(dbName);
-
+    FileSystemService fileSystemService = await GetFileSystemService(dbName);
 
     await fileSystemService.SaveConfig(superBlock, inodeTable, root);
 
-    var sb= fileSystemService.GetSuperBlock();
-    //var ino = fileSystemService.GetInodeTable();
-    //var inodes = fileSystemService.GetInodes();
+    var sb = fileSystemService.GetSuperBlock();
 
 
 }
@@ -136,4 +124,11 @@ static string GetAdminPassword()
     } while (!isValid);
 
     return response!;
+}
+
+static async Task<FileSystemService> GetFileSystemService(string dbName)
+{
+    FileSystemService fileSystemService = new FileSystemService();
+    await fileSystemService.ConfigureDataBase(dbName);
+    return fileSystemService;
 }
